@@ -13,7 +13,6 @@ export class EmployeeService {
   async createEmployee(
     createEmployeeDto: CreateEmployeeDto,
   ): Promise<Employee> {
-    console.log(createEmployeeDto);
     return await this.employeeModel.create(createEmployeeDto);
   }
 }

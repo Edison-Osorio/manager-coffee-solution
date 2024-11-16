@@ -3,7 +3,7 @@ import { EmployeeService } from '../service/employee.service';
 import { HarvestedService } from '../service/harvested.service';
 import { CreateEmployee } from '../dtos/create-employee.dto';
 
-@Controller('employees')
+@Controller('api/v1/employee')
 export class EmployeeController {
   constructor(
     private readonly employeeService: EmployeeService,
@@ -12,13 +12,7 @@ export class EmployeeController {
 
   @Get('get-employees/:startOfWeek')
   async getEmployees(@Param('startOfWeek') startOfWeek: string) {
-    console.log(startOfWeek);
     return await this.harvestedService.getCollectionsByWeek(startOfWeek);
-  }
-
-  @Get('debug/all-harvested')
-  async getAllHarvested() {
-    return await this.harvestedService.findAllHarvested();
   }
 
   @Post('create-employee')
@@ -30,9 +24,5 @@ export class EmployeeController {
       createEmployee.createHarvestedDto,
     );
     return { employee, harvested };
-  }
-  @Get('diagnostico')
-  async getDiagnostico() {
-    return await this.harvestedService.diagnosticoDatos();
   }
 }

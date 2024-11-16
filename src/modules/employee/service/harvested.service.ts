@@ -11,12 +11,9 @@ export class HarvestedService {
     private readonly harvestedModel: Model<Harvested>,
   ) {}
 
-  // Method to get collections (already implemented previously)
   async getCollectionsByWeek(startOfWeek: string) {
     try {
       const startDate = new Date(startOfWeek);
-      console.log('Buscando registros para la fecha:', startDate);
-
       return this.harvestedModel.aggregate([
         {
           $match: {
@@ -27,6 +24,15 @@ export class HarvestedService {
         {
           $group: {
             _id: '$employeeId',
+            collectionId: { $first: '$_id' },
+            days: {
+              $push: {
+                dayId: '$days._id',
+                day: '$days.day',
+                date: '$days.date',
+                coffeeAmount: '$days.coffeeAmount',
+              },
+            },
             Monday: {
               $sum: {
                 $cond: [
@@ -84,10 +90,9 @@ export class HarvestedService {
             Total: { $sum: '$days.coffeeAmount' },
           },
         },
-        // Opcional: Lookup para obtener el nombre del empleado si lo necesitas
         {
           $lookup: {
-            from: 'employees', // nombre de la colección de empleados
+            from: 'employees',
             localField: '_id',
             foreignField: 'employeeId',
             as: 'employeeInfo',
@@ -97,12 +102,13 @@ export class HarvestedService {
           $project: {
             _id: 1,
             employeeId: '$_id',
-            name: {
-              $concat: [
-                { $arrayElemAt: ['$employeeInfo.firstName', 0] },
-                ' ',
-                { $arrayElemAt: ['$employeeInfo.lastName', 0] },
-              ],
+            collectionId: 1,
+            days: 1,
+            firstName: {
+              $arrayElemAt: ['$employeeInfo.firstName', 0],
+            },
+            lastName: {
+              $arrayElemAt: ['$employeeInfo.lastName', 0],
             },
             Monday: 1,
             Tuesday: 1,
@@ -119,49 +125,16 @@ export class HarvestedService {
       throw error;
     }
   }
+
   async createHarvested(
     createHarvestedDto: CreateHarvestedDto,
   ): Promise<Harvested> {
+    // Ajustar la hora a medianoche (00:00:00)
+    const adjustedStartDate = new Date(createHarvestedDto.week.start);
+    adjustedStartDate.setUTCHours(0, 0, 0, 0);
+    createHarvestedDto.week.start = adjustedStartDate;
+    console.log('createHarvestedDto', createHarvestedDto.week.start);
     const harvested = new this.harvestedModel(createHarvestedDto);
     return await harvested.save();
-  }
-
-  async getHarvestedByEmployeeId(employeeId: string) {
-    return this.harvestedModel.find({ employee_id: employeeId });
-  }
-
-  async findAllHarvested() {
-    const result = await this.harvestedModel.find().exec();
-    console.log('Documentos encontrados:', result);
-    return result;
-  }
-
-  // Método auxiliar para diagnóstico
-  async diagnosticoDatos() {
-    try {
-      const todosLosDocumentos = await this.harvestedModel.find().exec();
-      console.log('Total documentos:', todosLosDocumentos.length);
-
-      if (todosLosDocumentos.length > 0) {
-        console.log('Ejemplo de documento:', {
-          week: todosLosDocumentos[0].week,
-          days: todosLosDocumentos[0].days,
-          employeeId: todosLosDocumentos[0].employeeId,
-        });
-      }
-
-      // Obtener todas las fechas distintas
-      const fechasUnicas = await this.harvestedModel.distinct('week.start');
-      console.log('Fechas únicas en la base de datos:', fechasUnicas);
-
-      return {
-        totalDocumentos: todosLosDocumentos.length,
-        fechasUnicas,
-        ejemploDocumento: todosLosDocumentos[0],
-      };
-    } catch (error) {
-      console.error('Error en diagnóstico:', error);
-      throw error;
-    }
   }
 }
