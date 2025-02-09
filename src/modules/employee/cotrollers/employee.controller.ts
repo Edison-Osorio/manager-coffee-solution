@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { EmployeeService } from '../service/employee.service';
 import { HarvestedService } from '../service/harvested.service';
 import { CreateEmployee } from '../dtos/create-employee.dto';
+import { UpdateHarvestedDto } from '../dtos/update-harvested.dto';
 
 @Controller('api/v1/employee')
 export class EmployeeController {
@@ -24,5 +25,10 @@ export class EmployeeController {
       createEmployee.createHarvestedDto,
     );
     return { employee, harvested };
+  }
+
+  @Put('update-harvested')
+  async updateHarvested(@Body() updateHarvestedDto: UpdateHarvestedDto) {
+    return await this.harvestedService.updateHarvested(updateHarvestedDto);
   }
 }

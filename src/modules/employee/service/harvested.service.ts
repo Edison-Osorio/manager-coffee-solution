@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Harvested } from '../schemas/harvested.schema';
 import { CreateHarvestedDto } from '../dtos/create-harvested.dto';
 import { Model } from 'mongoose';
+import { UpdateHarvestedDto } from '../dtos/update-harvested.dto';
 
 @Injectable()
 export class HarvestedService {
@@ -23,8 +24,8 @@ export class HarvestedService {
         { $unwind: '$days' },
         {
           $group: {
-            _id: '$employeeId',
-            collectionId: { $first: '$_id' },
+            _id: '$_id',
+            employeeId: { $first: '$employeeId' },
             days: {
               $push: {
                 dayId: '$days._id',
@@ -93,7 +94,7 @@ export class HarvestedService {
         {
           $lookup: {
             from: 'employees',
-            localField: '_id',
+            localField: 'employeeId',
             foreignField: 'employeeId',
             as: 'employeeInfo',
           },
@@ -101,8 +102,7 @@ export class HarvestedService {
         {
           $project: {
             _id: 1,
-            employeeId: '$_id',
-            collectionId: 1,
+            employeeId: '$employeeId',
             days: 1,
             firstName: {
               $arrayElemAt: ['$employeeInfo.firstName', 0],
@@ -136,5 +136,33 @@ export class HarvestedService {
     console.log('createHarvestedDto', createHarvestedDto.week.start);
     const harvested = new this.harvestedModel(createHarvestedDto);
     return await harvested.save();
+  }
+
+  async updateHarvested(updateHarvestedDto: UpdateHarvestedDto) {
+    try {
+      const { harvestedId, dayId, coffeeAmount } = updateHarvestedDto;
+
+      const resultado = await this.harvestedModel.findOneAndUpdate(
+        {
+          _id: harvestedId,
+          'days._id': dayId,
+        },
+        {
+          $set: {
+            'days.$.coffeeAmount': coffeeAmount,
+          },
+        },
+        { new: true },
+      );
+
+      if (!resultado) {
+        throw new Error('No se encontró el registro para actualizar');
+      }
+
+      return resultado;
+    } catch (error) {
+      console.error('Error al actualizar harvested:', error);
+      throw error;
+    }
   }
 }
